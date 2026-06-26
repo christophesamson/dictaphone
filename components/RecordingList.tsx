@@ -95,7 +95,7 @@ export default function RecordingList({ recordings, activeId, onPlay, onDelete, 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <a
-              href={r.url}
+              href={`/api/stream?url=${encodeURIComponent(r.url)}`}
               download={`${r.name}.webm`}
               className="text-gray-500 hover:text-white transition-colors"
               title="Télécharger"

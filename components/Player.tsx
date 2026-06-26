@@ -22,7 +22,7 @@ export default function Player({ recording, onClose }: { recording: Recording; o
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    audio.src = recording.url
+    audio.src = `/api/stream?url=${encodeURIComponent(recording.url)}`
     audio.load()
     setPlaying(false)
     setCurrent(0)

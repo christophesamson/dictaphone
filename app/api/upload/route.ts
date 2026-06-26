@@ -12,11 +12,8 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    console.log('[upload] uploading file', file.name, file.size, file.type)
-
     const id = nanoid()
-    const blob = await put(`recordings/${id}.webm`, file, { access: 'public' })
-    console.log('[upload] blob stored at', blob.url)
+    const blob = await put(`recordings/${id}.webm`, file, { access: 'private' })
 
     await addRecording({
       id,
@@ -26,7 +23,6 @@ export async function POST(req: NextRequest) {
       size: file.size,
       createdAt: new Date().toISOString(),
     })
-    console.log('[upload] recording added to index')
 
     return NextResponse.json({ ok: true, id })
   } catch (err) {
