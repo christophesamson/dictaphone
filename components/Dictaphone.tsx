@@ -100,7 +100,11 @@ export default function Dictaphone() {
     form.append('duration', String(elapsed))
     form.append('name', name)
 
-    await fetch('/api/upload', { method: 'POST', body: form })
+    const res = await fetch('/api/upload', { method: 'POST', body: form })
+    const json = await res.json()
+    if (!res.ok) {
+      alert(`Erreur upload : ${json.error}`)
+    }
     setElapsed(0)
     setUploading(false)
     fetchRecordings()
