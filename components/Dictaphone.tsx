@@ -137,7 +137,12 @@ export default function Dictaphone() {
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <h1 className="text-lg font-semibold tracking-wide">Dictaphone</h1>
+        <div>
+          <h1 className="text-lg font-semibold tracking-wide">Dictaphone</h1>
+          <p className="text-xs text-gray-600 font-mono">
+            {new Date(process.env.NEXT_PUBLIC_BUILD_TIME!).toLocaleString('fr-FR')}
+          </p>
+        </div>
         <form action="/api/auth" method="POST">
           <button
             type="button"
