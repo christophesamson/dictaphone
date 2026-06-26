@@ -38,6 +38,7 @@ async function saveRecordings(recordings: Recording[]): Promise<void> {
   await put(INDEX_PATH, JSON.stringify(recordings), {
     access: 'private',
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: 'application/json',
   })
 }
