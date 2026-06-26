@@ -1,4 +1,4 @@
-import { put, list } from '@vercel/blob'
+import { put, list, del } from '@vercel/blob'
 
 export interface Recording {
   id: string
@@ -9,51 +9,55 @@ export interface Recording {
   createdAt: string
 }
 
-const INDEX_PATH = 'metadata/index.json'
+const token = () => process.env.BLOB_READ_WRITE_TOKEN!
 
-async function getIndexUrl(): Promise<string | null> {
-  const { blobs } = await list({ prefix: 'metadata/' })
-  const found = blobs.find(b => b.pathname === INDEX_PATH)
-  return found ? found.url : null
+function metaPath(id: string) {
+  return `metadata/${id}.json`
 }
 
 export async function getRecordings(): Promise<Recording[]> {
-  try {
-    const url = await getIndexUrl()
-    if (!url) return []
-    const token = process.env.BLOB_READ_WRITE_TOKEN!
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { Authorization: `Bearer ${token}` },
+  const { blobs } = await list({ prefix: 'metadata/', token: token() })
+  if (blobs.length === 0) return []
+
+  const results = await Promise.all(
+    blobs.map(async b => {
+      const res = await fetch(b.url, {
+        cache: 'no-store',
+        headers: { Authorization: `Bearer ${token()}` },
+      })
+      if (!res.ok) return null
+      return res.json() as Promise<Recording>
     })
-    if (!res.ok) return []
-    return await res.json()
-  } catch (err) {
-    console.error('[storage] getRecordings error', err)
-    return []
-  }
+  )
+
+  return results
+    .filter(Boolean)
+    .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime()) as Recording[]
 }
 
-async function saveRecordings(recordings: Recording[]): Promise<void> {
-  await put(INDEX_PATH, JSON.stringify(recordings), {
+export async function addRecording(rec: Recording): Promise<void> {
+  await put(metaPath(rec.id), JSON.stringify(rec), {
     access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',
+    token: token(),
   })
 }
 
-export async function addRecording(rec: Recording): Promise<void> {
-  const list = await getRecordings()
-  await saveRecordings([rec, ...list])
-}
-
 export async function deleteRecording(id: string): Promise<void> {
-  const list = await getRecordings()
-  await saveRecordings(list.filter(r => r.id !== id))
+  const { blobs } = await list({ prefix: metaPath(id), token: token() })
+  if (blobs.length > 0) await del(blobs[0].url, { token: token() })
 }
 
 export async function renameRecording(id: string, name: string): Promise<void> {
-  const list = await getRecordings()
-  await saveRecordings(list.map(r => r.id === id ? { ...r, name } : r))
+  const { blobs } = await list({ prefix: metaPath(id), token: token() })
+  if (blobs.length === 0) return
+  const res = await fetch(blobs[0].url, {
+    cache: 'no-store',
+    headers: { Authorization: `Bearer ${token()}` },
+  })
+  if (!res.ok) return
+  const rec: Recording = await res.json()
+  await addRecording({ ...rec, name })
 }
