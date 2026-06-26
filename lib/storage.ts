@@ -1,4 +1,4 @@
-import { put, head, del } from '@vercel/blob'
+import { put, list } from '@vercel/blob'
 
 export interface Recording {
   id: string
@@ -12,12 +12,8 @@ export interface Recording {
 const INDEX_PATH = 'metadata/index.json'
 
 async function getIndexUrl(): Promise<string | null> {
-  try {
-    const result = await head(`${process.env.BLOB_BASE_URL ?? ''}/${INDEX_PATH}`)
-    return result.url
-  } catch {
-    return null
-  }
+  const { blobs } = await list({ prefix: INDEX_PATH })
+  return blobs.length > 0 ? blobs[0].url : null
 }
 
 export async function getRecordings(): Promise<Recording[]> {
