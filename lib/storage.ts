@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import { put, head, del } from '@vercel/blob'
 
 export interface Recording {
   id: string
@@ -9,24 +9,45 @@ export interface Recording {
   createdAt: string
 }
 
-const KEY = 'recordings'
+const INDEX_PATH = 'metadata/index.json'
+
+async function getIndexUrl(): Promise<string | null> {
+  try {
+    const result = await head(`${process.env.BLOB_BASE_URL ?? ''}/${INDEX_PATH}`)
+    return result.url
+  } catch {
+    return null
+  }
+}
 
 export async function getRecordings(): Promise<Recording[]> {
-  const data = await kv.get<Recording[]>(KEY)
-  return data ?? []
+  try {
+    const url = await getIndexUrl()
+    if (!url) return []
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return []
+    return await res.json()
+  } catch {
+    return []
+  }
+}
+
+async function saveRecordings(list: Recording[]): Promise<void> {
+  const blob = new Blob([JSON.stringify(list)], { type: 'application/json' })
+  await put(INDEX_PATH, blob, { access: 'public', addRandomSuffix: false })
 }
 
 export async function addRecording(rec: Recording): Promise<void> {
   const list = await getRecordings()
-  await kv.set(KEY, [rec, ...list])
+  await saveRecordings([rec, ...list])
 }
 
 export async function deleteRecording(id: string): Promise<void> {
   const list = await getRecordings()
-  await kv.set(KEY, list.filter(r => r.id !== id))
+  await saveRecordings(list.filter(r => r.id !== id))
 }
 
 export async function renameRecording(id: string, name: string): Promise<void> {
   const list = await getRecordings()
-  await kv.set(KEY, list.map(r => r.id === id ? { ...r, name } : r))
+  await saveRecordings(list.map(r => r.id === id ? { ...r, name } : r))
 }
