@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import RecordingList from './RecordingList'
 import Player from './Player'
+import Waveform from './Waveform'
 import type { Recording } from '@/lib/storage'
 
 type RecorderState = 'idle' | 'recording' | 'paused'
@@ -19,6 +20,7 @@ export default function Dictaphone() {
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [activeRecording, setActiveRecording] = useState<Recording | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -44,14 +46,15 @@ export default function Dictaphone() {
   }
 
   async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    streamRef.current = stream
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    streamRef.current = mediaStream
+    setStream(mediaStream)
 
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : 'audio/webm'
 
-    const recorder = new MediaRecorder(stream, { mimeType })
+    const recorder = new MediaRecorder(mediaStream, { mimeType })
     mediaRecorderRef.current = recorder
     chunksRef.current = []
 
@@ -90,6 +93,7 @@ export default function Dictaphone() {
     })
 
     streamRef.current?.getTracks().forEach(t => t.stop())
+    setStream(null)
     setState('idle')
 
     const blob = new Blob(chunksRef.current, { type: recorder.mimeType })
@@ -143,41 +147,24 @@ export default function Dictaphone() {
             {new Date(process.env.NEXT_PUBLIC_BUILD_TIME!).toLocaleString('fr-FR')}
           </p>
         </div>
-        <form action="/api/auth" method="POST">
-          <button
-            type="button"
-            onClick={async () => { await fetch('/api/auth', { method: 'DELETE' }); location.href = '/login' }}
-            className="text-gray-500 hover:text-gray-300 text-sm"
-          >
-            Déconnexion
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={async () => { await fetch('/api/auth', { method: 'DELETE' }); location.href = '/login' }}
+          className="text-gray-500 hover:text-gray-300 text-sm"
+        >
+          Déconnexion
+        </button>
       </div>
 
       {/* Recorder */}
-      <div className="flex flex-col items-center gap-8 py-12 px-6">
+      <div className="flex flex-col items-center gap-6 py-10 px-6">
         {/* Timer */}
         <div className="text-6xl font-mono tabular-nums text-white">
           {formatTime(elapsed)}
         </div>
 
-        {/* Waveform indicator */}
-        <div className="flex items-center gap-1 h-10">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-1.5 rounded-full transition-all duration-150 ${
-                isRecording
-                  ? 'bg-red-500 animate-pulse'
-                  : 'bg-gray-700'
-              }`}
-              style={{
-                height: isRecording ? `${Math.random() * 100}%` : '30%',
-                animationDelay: `${i * 50}ms`,
-              }}
-            />
-          ))}
-        </div>
+        {/* Real waveform */}
+        <Waveform stream={stream} active={isRecording} />
 
         {/* Controls */}
         <div className="flex items-center gap-6">
