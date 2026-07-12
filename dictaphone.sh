@@ -51,7 +51,7 @@ case "$cmd" in
       echo "  Aucun enregistrement"
       exit 0
     fi
-    echo "$data" | jq -r '.[] | "  [\(.id[0:8])]  \(.name)  —  \(.duration // 0 | . / 60 | floor | tostring | if length == 1 then "0"+. else . end):\(.duration // 0 % 60 | tostring | if length == 1 then "0"+. else . end)  \((.size // 0) as $s | if $s < 1048576 then ($s/1024|floor|tostring)+" Ko" else ($s/1048576*10|floor/10|tostring)+" Mo" end)"'
+    echo "$data" | jq -r '[.[] | if type == "array" then .[] else . end] | .[] | "  [\(.id[0:8])]  \(.name)  —  \(.duration // 0 | . / 60 | floor | tostring | if length == 1 then "0"+. else . end):\(.duration // 0 % 60 | tostring | if length == 1 then "0"+. else . end)  \((.size // 0) as $s | if $s < 1048576 then ($s/1024|floor|tostring)+" Ko" else ($s/1048576*10|floor/10|tostring)+" Mo" end)"'
     ;;
 
   download)

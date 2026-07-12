@@ -32,7 +32,9 @@ export async function getRecordings(): Promise<Recording[]> {
 
   return results
     .filter(Boolean)
-    .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime()) as Recording[]
+    .flat()                          // corrige les tableaux imbriqués sauvegardés par l'ancien code
+    .filter((r): r is Recording => !!r && typeof r === 'object' && 'id' in r)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
 export async function addRecording(rec: Recording): Promise<void> {
