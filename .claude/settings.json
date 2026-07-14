@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"Un commit vient d'être effectué. Si les changements affectent une fonctionnalité, l'architecture, l'API, la CLI ou le déploiement, mets à jour DOCUMENTATION.md avant de terminer.\"}}' || true",
+            "statusMessage": "Vérification documentation..."
+          }
+        ]
+      }
+    ]
+  }
+}
